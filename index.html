@@ -600,7 +600,7 @@
       const [draft, setDraft] = useState(res.options || { letteringStyle:null, letteringText:"", letteringLang:"영문", candleLight:null, partyBg:null, music:{pre:"",groom:"",bride:"",march:""}, couplePhotos:null, groomPhotos:null, notes:"", invitationLink:"", preVideoFiles:[], groomEntryFiles:[]});
       const [submitted, setSubmitted] = useState(res.status === "completed");
       const days = getDaysUntil(res.deadline);
-      const STEPS = ["레터링 스타일","레터링 텍스트","화촉점화","파티 배경","자료 제출","배경음악","최종 확인"];
+      const STEPS = ["레터링 스타일","레터링 텍스트","화촉점화","파티 배경","자료 제출","배경음악","식순 확인","최종 확인"];
       const update = (k, v) => setDraft(d => ({...d,[k]:v}));
       const updateMusic = (k, v) => setDraft(d => ({...d, music:{...d.music,[k]:v}}));
       const handleSubmit = () => {
@@ -800,6 +800,149 @@
             )}
             {step === 6 && (
               <div>
+                <div className="fd" style={{ fontSize:28, fontWeight:300, marginBottom:8 }}>식순 미디어 확인 · 선택</div>
+                <div className="fb" style={{ fontSize:11, color:"#7a6a52", marginBottom:32 }}>예식 진행 순서와 각 장면의 미디어아트 영상을 확인하세요. ✦ 표시된 항목은 직접 선택 가능합니다.</div>
+                {(function() {
+                  const [tab, setTab] = React.useState("ceremony");
+                  const [openRows, setOpenRows] = React.useState({});
+                  const toggleRow = (key) => setOpenRows(prev => ({...prev, [key]: !prev[key]}));
+
+                  const CHOIR_C = [
+                    { id:"blooming", label:"블루밍", desc:"꽃이 피어나는\n감성적인 영상", color:"#8B5E7A" },
+                    { id:"white",    label:"화이트",  desc:"고요하고 순수한\n흰 빛 영상",  color:"#C0B090" },
+                    { id:"gold",     label:"골드",    desc:"화려한 골드\n파티클 영상",    color:"#C9A965" },
+                    { id:"forest",   label:"포레스트", desc:"자연의 청록빛\n숲 영상",     color:"#4A7A5A" },
+                  ];
+                  const CHOIR_R = [
+                    { id:"white",    label:"화이트",  desc:"고요하고 순수한\n흰 빛 영상",  color:"#C0B090" },
+                    { id:"blooming", label:"블루밍", desc:"꽃이 피어나는\n감성적인 영상", color:"#8B5E7A" },
+                    { id:"gold",     label:"골드",    desc:"화려한 골드\n파티클 영상",    color:"#C9A965" },
+                  ];
+
+                  const CEREMONY = [
+                    { key:"c0",  step:"식전 영상",        desc:"신랑신부 사진 슬라이드", type:"chosen", label: draft.letteringStyle ? "레터링 "+draft.letteringStyle : "(Step 1에서 선택)" },
+                    { key:"c1",  step:"개식선언",          desc:"예식 시작 안내",          type:"fixed",  scene:"캐슬 석상" },
+                    { key:"c2",  step:"양가 부모님 입장",  desc:"신랑측→신부측 혼주 입장", type:"chosen", label: draft.candleLight ? "화촉 "+draft.candleLight : "(Step 3에서 선택)" },
+                    { key:"c3",  step:"화촉점화",          desc:"양가 부모님 화촉점화",     type:"fixed",  scene:"캐슬 석상 전환" },
+                    { key:"c4",  step:"신랑입장",          desc:"단독 입장",                type:"fixed",  scene:"신랑 사진 반영" },
+                    { key:"c5",  step:"신부입장",          desc:"도어 / 아버지와 함께",     type:"fixed",  scene:"라인아트 캐슬 기본형" },
+                    { key:"c6",  step:"신랑신부 맞절",     desc:"",                         type:"fixed",  scene:"캐슬 석상" },
+                    { key:"c7",  step:"혼인서약",          desc:"낭독형",                   type:"fixed",  scene:"캐슬 석상" },
+                    { key:"c8",  step:"성혼선언",          desc:"",                         type:"fixed",  scene:"캐슬 석상" },
+                    { key:"c9",  step:"축사",              desc:"",                         type:"fixed",  scene:"캐슬 석상" },
+                    { key:"c10", step:"축가",              desc:"음악 분위기에 맞는 영상",  type:"select", draftKey:"ceremonyChoirStyle", options:CHOIR_C },
+                    { key:"c11", step:"감사인사",          desc:"부모님 → 하객 인사",       type:"fixed",  scene:"캐슬 석상" },
+                    { key:"c12", step:"행진",              desc:"버진로드 행진",             type:"fixed",  scene:"기본 나비 (5초)" },
+                    { key:"c13", step:"폐연",              desc:"",                         type:"fixed",  scene:"캐슬 석상" },
+                    { key:"c14", step:"사진촬영",          desc:"친척 → 친구 지인",         type:"fixed",  scene:"캐슬 석상" },
+                  ];
+                  const RECEPTION = [
+                    { key:"r0", step:"개식선언",       desc:"",                          type:"fixed",  scene:"캐슬 석상" },
+                    { key:"r1", step:"입장 전 영상",   desc:"분위기 조성 영상",           type:"fixed",  scene:"2부 골드" },
+                    { key:"r2", step:"신랑신부 입장",  desc:"피로연 입장",                type:"fixed",  scene:"2부 골드" },
+                    { key:"r3", step:"축가",           desc:"음악 분위기에 맞는 영상",   type:"select", draftKey:"receptionChoirStyle", options:CHOIR_R },
+                    { key:"r4", step:"케이크컷팅",     desc:"",                          type:"fixed",  scene:"캐슬 석상" },
+                    { key:"r5", step:"건배제의",       desc:"",                          type:"fixed",  scene:"캐슬 석상" },
+                    { key:"r6", step:"폐연",           desc:"",                          type:"fixed",  scene:"캐슬 석상" },
+                    { key:"r7", step:"테이블인사",     desc:"신랑신부, 혼주",             type:"fixed",  scene:"캐슬 석상" },
+                  ];
+
+                  const list = tab === "ceremony" ? CEREMONY : RECEPTION;
+
+                  const RowScene = ({row}) => {
+                    if (row.type === "fixed") return (
+                      <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                        <span style={{ fontSize:10, color:"#2a2218" }}>🔒</span>
+                        <span className="fb" style={{ fontSize:10, color:"#3a3020" }}>{row.scene}</span>
+                      </div>
+                    );
+                    if (row.type === "chosen") return (
+                      <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                        <span className="gold" style={{ fontSize:10 }}>✦</span>
+                        <span className="fb" style={{ fontSize:10, color:"#C9A965" }}>{row.label}</span>
+                      </div>
+                    );
+                    if (row.type === "select") {
+                      const sel = draft[row.draftKey];
+                      const selOpt = (row.options||[]).find(o => o.id === sel);
+                      return (
+                        <div style={{ display:"flex", alignItems:"center", gap:6, width:"100%" }}>
+                          <span className="gold" style={{ fontSize:10 }}>✦</span>
+                          <span className="fb" style={{ fontSize:10, color: sel ? "#C9A965" : "#ff777780" }}>
+                            {sel ? selOpt?.label+" 스타일" : "선택 필요 ▾"}
+                          </span>
+                          {sel && <span style={{ fontSize:9, color:"#4a4030", marginLeft:4 }}>▾ 변경</span>}
+                        </div>
+                      );
+                    }
+                    return null;
+                  };
+
+                  return (
+                    <div>
+                      <div style={{ display:"flex", gap:0, marginBottom:24, border:"1px solid #2a2218" }}>
+                        {[["ceremony","1부 · 예식"],["reception","2부 · 피로연"]].map(([t,label]) => (
+                          <button key={t} onClick={() => setTab(t)} style={{ flex:1, padding:"12px", background: tab===t ? "#C9A96515" : "transparent", border:"none", borderBottom: tab===t ? "2px solid #C9A965" : "2px solid transparent", color: tab===t ? "#C9A965" : "#4a4030", fontFamily:"Montserrat", fontSize:11, letterSpacing:"0.1em", cursor:"pointer", transition:"all 0.2s" }}>
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div style={{ border:"1px solid #2a2218" }}>
+                        <div style={{ display:"grid", gridTemplateColumns:"110px 1fr 180px", background:"#0a0806", padding:"10px 16px", borderBottom:"1px solid #2a2218" }}>
+                          {["식  순","설  명","미디어아트 영상"].map(h => (
+                            <div key={h} className="fb" style={{ fontSize:9, letterSpacing:"0.15em", color:"#4a4030" }}>{h}</div>
+                          ))}
+                        </div>
+                        {list.map((row, idx) => {
+                          const isSelect = row.type === "select";
+                          const isOpen = openRows[row.key];
+                          const sel = isSelect ? draft[row.draftKey] : null;
+                          return (
+                            <div key={row.key} style={{ borderBottom: idx < list.length-1 ? "1px solid #1a1610" : "none" }}>
+                              <div
+                                style={{ display:"grid", gridTemplateColumns:"110px 1fr 180px", padding:"13px 16px", background: isSelect ? (isOpen ? "#1a1610" : "#16120e") : "transparent", cursor: isSelect ? "pointer" : "default", transition:"background 0.15s" }}
+                                onClick={() => isSelect && toggleRow(row.key)}
+                              >
+                                <div className="fb" style={{ fontSize:11, color: isSelect ? "#e8dcc8" : row.type==="chosen" ? "#C9A96590" : "#6a5a42" }}>{row.step}</div>
+                                <div className="fb" style={{ fontSize:10, color:"#3a3020", paddingRight:8 }}>{row.desc}</div>
+                                <RowScene row={row} />
+                              </div>
+                              {isSelect && isOpen && (
+                                <div style={{ padding:"14px 16px 16px", background:"#0a0806", borderTop:"1px solid #1a1610" }}>
+                                  <div className="fb" style={{ fontSize:9, letterSpacing:"0.12em", color:"#4a4030", marginBottom:12 }}>축가 영상 스타일을 선택해 주세요</div>
+                                  <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(130px, 1fr))", gap:10 }}>
+                                    {row.options.map(opt => (
+                                      <div key={opt.id} onClick={(e) => { e.stopPropagation(); update(row.draftKey, opt.id); toggleRow(row.key); }}
+                                        style={{ padding:"14px 10px", cursor:"pointer", textAlign:"center", border: sel===opt.id ? "1px solid #C9A965" : "1px solid #2a2218", background: sel===opt.id ? "#C9A96510" : "#16120e", transition:"all 0.15s" }}>
+                                        <div style={{ width:28, height:28, borderRadius:"50%", background:opt.color+"25", border:"1px solid "+opt.color+"50", margin:"0 auto 10px", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                                          <div style={{ width:10, height:10, borderRadius:"50%", background:opt.color+"90" }} />
+                                        </div>
+                                        <div className="fb" style={{ fontSize:11, color:"#e8dcc8", marginBottom:4 }}>{opt.label}</div>
+                                        <div className="fb" style={{ fontSize:9, color:"#4a4030", lineHeight:1.7, whiteSpace:"pre-line" }}>{opt.desc}</div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <div style={{ marginTop:14, padding:"12px 16px", background:"#0f0d0a", border:"1px solid #1a1610" }}>
+                        <div className="fb" style={{ fontSize:9, color:"#3a3020", lineHeight:2.2 }}>
+                          🔒 잠금 표시 항목은 기본값으로 진행되며 별도 선택이 필요하지 않습니다.<br/>
+                          ✦ 금색 표시 항목은 직접 선택하신 옵션이 반영됩니다. 축가 행을 눌러 스타일을 선택해 주세요.
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+            {step === 7 && (
+              <div>
                 <div className="fd" style={{ fontSize:28, fontWeight:300, marginBottom:8 }}>최종 확인 및 제출</div>
                 <div className="fb" style={{ fontSize:11, color:"#7a6a52", marginBottom:32 }}>선택하신 옵션을 확인하시고 제출해 주세요</div>
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:24 }}>
@@ -811,6 +954,8 @@
                     { label:"식전 영상 파일", value:(draft.preVideoFiles||[]).length > 0 ? `${(draft.preVideoFiles||[]).length}개 파일 업로드` : null},
                     { label:"신랑입장 파일", value:(draft.groomEntryFiles||[]).length > 0 ? `${(draft.groomEntryFiles||[]).length}장 업로드` + ((draft.groomEntryFiles||[]).length < 4 ? " ⚠4장 미만" : "") : null},
                     { label:"디지털 청첩장", value:draft.invitationLink},
+                    { label:"예식 축가 스타일", value:draft.ceremonyChoirStyle},
+                    { label:"피로연 축가 스타일", value:draft.receptionChoirStyle},
                     { label:"식전 배경음악", value:draft.music?.pre},
                     { label:"신랑 입장 음악", value:draft.music?.groom},
                     { label:"신부 입장 음악", value:draft.music?.bride},
